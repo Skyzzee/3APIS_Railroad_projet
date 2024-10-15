@@ -10,7 +10,7 @@ exports.getAllTrains = async (req, res) => {
   }
 };
 
-// Enregistrer un nouveau train
+// Enregistrer un nouveau train (admin uniquement)
 exports.creationTrain = async (req, res) => {
   const { name, start_station, end_station, time_of_departure } = req.body;
   try {
@@ -41,7 +41,7 @@ exports.getTrainById = async (req, res) => {
   }
 };
 
-// Mettre à jour un train par ID
+// Mettre à jour un train par ID (admin uniquement)
 exports.updateTrainById = async (req, res) => {
   try {
     const train = await TrainModel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -52,7 +52,7 @@ exports.updateTrainById = async (req, res) => {
   }
 };
 
-// Supprimer un train par ID
+// Supprimer un train par ID (admin uniquement  )
 exports.deleteTrainById = async (req, res) => {
   try {
     const train = await TrainModel.findByIdAndDelete(req.params.id);

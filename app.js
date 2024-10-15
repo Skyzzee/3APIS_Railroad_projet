@@ -6,6 +6,7 @@ const { connectDB } = require('./config/db');
 const userRoutes = require('./routes/userRoute');
 const trainRoutes = require('./routes/trainRoute');
 const stationRoutes = require('./routes/stationRoute');
+const ticketRoutes = require('./routes/ticketRoute');
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -27,6 +28,7 @@ app.get('/', (req, res) => {
 app.use('/user', userRoutes); // Route des utilisateurs
 app.use('/train', trainRoutes); // Route des trains
 app.use('/station', stationRoutes); // Route des gares
+app.use('/ticket', ticketRoutes); // Route des tickets
 
 
 module.exports = app;

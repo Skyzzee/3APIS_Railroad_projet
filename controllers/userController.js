@@ -50,7 +50,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// Récupérer un utilisateur par ID
+// Récupérer un utilisateur par ID (seulement pour l’employé/admin)
 exports.getUserById = async (req, res) => {
   try {
     const user = await UserModel.findById(req.params.id);
@@ -61,7 +61,7 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// Mettre à jour un utilisateur par ID
+// Mettre à jour un utilisateur par ID (l’utilisateur peut seulement se modifier lui-même) - admin
 exports.updateUserById = async (req, res) => {
   try {
     const user = await UserModel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -72,7 +72,7 @@ exports.updateUserById = async (req, res) => {
   }
 };
 
-// Supprimer un utilisateur par ID
+// Supprimer un utilisateur par ID (l’utilisateur peut seulement se supprimer lui-même) - admin
 exports.deleteUserById = async (req, res) => {
   try {
     const user = await UserModel.findByIdAndDelete(req.params.id);
