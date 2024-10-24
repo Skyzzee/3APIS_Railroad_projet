@@ -1,53 +1,65 @@
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 
-// Middleware pour vérifier le token JWT
-const verifyToken = async (req, res, next) => {
+// Fonction pour décoder le token et récupérer l'utilisateur
+const getUserIdFromToken = async (req) => {
   const token = req.headers['authorization']?.split(' ')[1];
-
   if (!token) {
-    console.log("Aucun token fourni");
-    return res.status(403).json({ message: "Veuillez vous connecter" });
+    throw new Error("Token manquant");
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, async (error, decoded) => {
-    if (error) {
-      console.log("Erreur de vérification du token:", error);
-      return res.status(401).json({ message: "Token invalide" });
+  try {
+    // Vérifie et décode le token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Recherche l'utilisateur en fonction de l'ID extrait du token
+    const user = await UserModel.findById(decoded.id);
+    if (!user) {
+      throw new Error("Utilisateur non trouvé");
     }
-
-    try {
-      const user = await UserModel.findById(decoded.id);
-      if (!user) {
-        console.log("Utilisateur non trouvé");
-        return res.status(404).json({ message: "Utilisateur non trouvé" });
-      }
-
-      req.user = user;
-      next();
-    } catch (error) {
-      console.log("Erreur lors de la récupération de l'utilisateur:", error);
-      return res.status(500).json({ message: "Erreur lors de la récupération de l'utilisateur" });
+    return user; // Retourne l'utilisateur s'il est trouvé
+  } catch (error) {
+    // Gestion des erreurs liées au token et à la recherche utilisateur
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      throw new Error("Token invalide");
     }
-  });
+    throw new Error("Erreur lors de la récupération de l'utilisateur");
+  }
 };
 
+// Middleware pour vérifier le token JWT
+const verifyToken = async (req, res, next) => {
+  try {
+    const user = await getUserIdFromToken(req); // Utilise la fonction pour récupérer l'utilisateur
+    req.user = user;
+    next(); // Continue si tout est correct
+  } catch (error) {
+    if (error.message === "Token manquant") {
+      return res.status(403).json({ message: "Veuillez vous connecter" });
+    } else if (error.message === "Token invalide") {
+      return res.status(401).json({ message: "Token invalide" });
+    } else if (error.message === "Utilisateur non trouvé") {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    } else {
+      return res.status(500).json({ message: "Erreur lors de la récupération de l'utilisateur" });
+    }
+  }
+};
 
 // Middleware pour autoriser en fonction des rôles
 const authorizeRole = (roles) => {
   return (req, res, next) => {
-    const user = req.user; // Utilisateur déjà chargé dans req par verifyToken
+    const user = req.user;
 
     if (!user) {
       return res.status(401).json({ message: "Utilisateur non authentifié" });
     }
 
-    // Vérification si le rôle de l'utilisateur est autorisé
+    console.log(roles, user.role);
     if (roles.includes(user.role)) {
+      console.log(roles, user.role);
       return next();
     }
 
-    // Si l'utilisateur peut accéder à ses propres ressources (par ID)
     if (req.params.id === user._id.toString()) {
       return next();
     }
@@ -56,4 +68,5 @@ const authorizeRole = (roles) => {
   };
 };
 
-module.exports = { verifyToken, authorizeRole };
+
+module.exports = { getUserIdFromToken, verifyToken, authorizeRole };
