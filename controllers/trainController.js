@@ -52,7 +52,7 @@ exports.updateTrainById = async (req, res) => {
   }
 };
 
-// Supprimer un train par ID (admin uniquement  )
+// Supprimer un train par ID (admin uniquement)
 exports.deleteTrainById = async (req, res) => {
   try {
     const train = await TrainModel.findByIdAndDelete(req.params.id);

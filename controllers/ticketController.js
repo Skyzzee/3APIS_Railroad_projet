@@ -1,12 +1,13 @@
 const TicketModel = require('../models/ticketModel');
 
-// Récupérer toutes les gares
+// Récupérer toutes les tickets d'un utilisateur (historique)
 exports.getAllUserTicket = async (req, res) => {
   try {
-    const tickets = await TicketModel.find();
+    const tickets = await TicketModel.findById(req.params.id_user);
+    if (!tickets) return res.status(404).json({ error: 'Aucun ticket trouvée' });
     res.json(tickets);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération des gares' });
+    res.status(500).json({ error: 'Erreur lors de la récupération des tickets de l\'utilisateur' });
   }
 };
 

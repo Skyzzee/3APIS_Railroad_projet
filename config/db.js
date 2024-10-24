@@ -2,22 +2,25 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 let mongoServer;
-let isConnected = false;
+let isConnected = false; // Assurez-vous que cette variable est définie ici
 
 const connectDB = async () => {
-  // vérif d'une connexion existante
+  // Vérifiez s'il y a déjà une connexion
   if (mongoose.connection.readyState === 0 && !isConnected) {
     try {
-      isConnected = true;
+      isConnected = true; // Marquez comme connecté
       if (process.env.NODE_ENV === 'test') {
-        // Connexion à la base de donnée de test
+        // Connexion à la base de données de test
         mongoServer = await MongoMemoryServer.create();
         const MONGO_URI_TEST = mongoServer.getUri();
-        await mongoose.connect(MONGO_URI_TEST);
+        await mongoose.connect(MONGO_URI_TEST, {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+        });
         console.log('Connecté à MongoDB In-Memory');
       } else {
-        // Connexion a la vrai base de donnée 
-        await mongoose.connect(process.env.MONGO_URI);
+        // Connexion à la vraie base de données
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connecté à MongoDB');
       }
     } catch (error) {
@@ -28,13 +31,4 @@ const connectDB = async () => {
   }
 };
 
-
-const disconnectDB = async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
-};
-
-module.exports = { connectDB, disconnectDB };
+module.exports = { connectDB };
