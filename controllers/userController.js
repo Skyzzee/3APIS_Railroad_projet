@@ -33,7 +33,6 @@ exports.registerUser = async (req, res) => {
 
     res.status(201).json({ message: "L'utilisateur a été enregistré avec succès" });
   } catch (error) {
-    console.error("Erreur lors de l'enregistrement de l'utilisateur :", error);
     res.status(500).json({ message: "Erreur Serveur" });
   }
 };
@@ -53,7 +52,6 @@ exports.loginUser = async (req, res) => {
 
     // Utiliser la méthode comparePassword pour vérifier le mot de passe
     const isMatch = await user.comparePassword(password);
-    console.log(isMatch, password, user.password); // Pour débogage
     if (!isMatch) {
       return res.status(400).json({ message: "Le mot de passe est invalide !" });
     }
@@ -62,7 +60,6 @@ exports.loginUser = async (req, res) => {
     res.status(200).json({ message: "Connexion réussie !", token, user: { id: user._id, pseudo: user.pseudo, email: user.email } });
     
   } catch (error) {
-    console.error("Erreur lors de la connexion :", error);
     res.status(500).json({ message: "Erreur du serveur, veuillez réessayer plus tard." });
   }
 };
@@ -71,10 +68,10 @@ exports.loginUser = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const user = await UserModel.findById(req.params.id);
-    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération de l\'utilisateur' });
+    res.status(500).json({ message: 'Erreur lors de la récupération de l\'utilisateur' });
   }
 };
 
@@ -105,7 +102,7 @@ exports.deleteUserById = async (req, res) => {
   try {
     const user = await UserModel.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    res.json(user);
+    res.json({ message: 'Utilisateur supprimé avec succès', user });
   } catch (error) {
     res.status(500).json({ error: 'Erreur lors de la suppression de l\'utilisateur' });
   }

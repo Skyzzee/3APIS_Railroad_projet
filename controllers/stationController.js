@@ -53,12 +53,23 @@ exports.updateStationById = async (req, res) => {
 };
 
 // Supprimer d'une gare par ID (admin uniquement)
+const TrainModel = require('../models/trainModel'); // Assure-toi d'importer le modèle de Train
+
 exports.deleteStationById = async (req, res) => {
   try {
+    // Suppression de la gare
     const station = await StationModel.findByIdAndDelete(req.params.id);
-    if (!station) return res.status(404).json({ error: 'Gare non trouvée' });
-    res.json(station);
+    if (!station) {
+      return res.status(404).json({ message: 'Gare non trouvée' });
+    }
+
+    // Suppression de tous les trains liés à cette gare
+    await TrainModel.deleteMany({ start_station: req.params.id});
+    await TrainModel.deleteMany({ end_station: req.params.id});
+
+    res.json({ message: 'Gare et trains associés supprimés avec succès', station });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la suppression de la gare' });
+    res.status(500).json({ message: 'Erreur lors de la suppression de la gare et des trains associés' });
   }
 };
+

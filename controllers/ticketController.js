@@ -45,7 +45,6 @@ exports.creationTicket = async (req, res) => {
     res.status(201).json({ message: "Le ticket a été réservé avec succès" });
 
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Erreur Serveur" });
   }
 };
@@ -53,16 +52,15 @@ exports.creationTicket = async (req, res) => {
 exports.getTicketById = async (req, res) => { 
   try {
     const ticket = await TicketModel.findById(req.params.id);
-    if (!ticket) return res.status(404).json({ error: 'Ticket non trouvé' });
+    if (!ticket) return res.status(404).json({ message: 'Ticket non trouvé' });
 
     const user = await getUserIdFromToken(req); 
-    const user_id = user._id;
 
-    if (ticket.user_id !== user_id) return res.status(401).json({ error: 'Accès interdit' });
+  if (!ticket.user_id.equals(user._id) && user._role === 'user') return res.status(401).json({ message: 'Accès interdit' });
     
     res.json(ticket);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération du ticket' });
+    res.status(500).json({ message: 'Erreur lors de la récupération du ticket' });
   }
 };
 

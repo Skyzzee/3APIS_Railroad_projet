@@ -57,7 +57,7 @@ exports.deleteTrainById = async (req, res) => {
   try {
     const train = await TrainModel.findByIdAndDelete(req.params.id);
     if (!train) return res.status(404).json({ error: 'Train non trouvé' });
-    res.json(train);
+    res.json({ message: 'Train supprimé avec succès', train });
   } catch (error) {
     res.status(500).json({ error: 'Erreur lors de la suppression du train' });
   }

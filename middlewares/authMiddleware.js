@@ -54,13 +54,7 @@ const authorizeRole = (roles) => {
       return res.status(401).json({ message: "Utilisateur non authentifié" });
     }
 
-    console.log(roles, user.role);
-    if (roles.includes(user.role)) {
-      console.log(roles, user.role);
-      return next();
-    }
-
-    if (req.params.id === user._id.toString()) {
+    if (roles.includes(user.role) || req.params.id === user._id.toString()) {
       return next();
     }
 

@@ -13,10 +13,7 @@ const connectDB = async () => {
         // Connexion à la base de données de test
         mongoServer = await MongoMemoryServer.create();
         const MONGO_URI_TEST = mongoServer.getUri();
-        await mongoose.connect(MONGO_URI_TEST, {
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
-        });
+        await mongoose.connect(MONGO_URI_TEST);
         console.log('Connecté à MongoDB In-Memory');
       } else {
         // Connexion à la vraie base de données
@@ -31,4 +28,8 @@ const connectDB = async () => {
   }
 };
 
-module.exports = { connectDB };
+async function disconnectDB() {
+  await mongoose.connection.close();
+}
+
+module.exports = { connectDB, disconnectDB };
