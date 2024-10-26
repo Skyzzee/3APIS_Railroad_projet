@@ -1,12 +1,14 @@
+// IMPORTS
 const StationModel = require('../models/stationModel');
+const TrainModel = require('../models/trainModel'); 
 
 // Récupérer toutes les gares
 exports.getAllStations = async (req, res) => {
   try {
     const stations = await StationModel.find();
-    res.json(stations);
+    return res.status(200).json({ message: 'Gares récupérées avec succès', stations });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération des gares' });
+    return res.status(500).json({ error: 'Erreur lors de la récupération des gares' });
   }
 };
 
@@ -15,18 +17,18 @@ exports.creationStation = async (req, res) => {
   const { name, open_hour, close_hour, image } = req.body;
   try {
     if (!name || !open_hour || !close_hour || !image) {
-      return res.status(400).json({ error: "Le nom, les heures d'ouverture et de fermeture ainsi que l'image sont requis !" });
+      return res.status(400).json({ error: 'Le nom, les heures d\'ouverture et de fermeture ainsi que l\'image sont requis !' });
     }
     let station = await StationModel.findOne({ name });
     if (station) {
-      return res.status(400).json({ message: "La gare est déjà existante !" });
+      return res.status(400).json({ error: 'La gare est déjà existante !' });
     } else {
       station = new StationModel({ name, open_hour, close_hour, image });
       await station.save();
-      res.status(201).json({ message: "La gare a été enregistrée avec succès" });
+      res.status(201).json({ message: 'La gare a été enregistrée avec succès', station });
     }
   } catch (error) {
-    res.status(500).json({ message: "Erreur Serveur" });
+    return res.status(500).json({ error: 'Erreur lors de la création de la gare' });
   }
 };
 
@@ -35,9 +37,10 @@ exports.getStationById = async (req, res) => {
   try {
     const station = await StationModel.findById(req.params.id);
     if (!station) return res.status(404).json({ error: 'Gare non trouvée' });
-    res.json(station);
+    return res.status(200).json({ message: 'Gare récupérée avec succès', station });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération du la gare' });
+    console.log(error)
+    return res.status(500).json({ error: 'Erreur lors de la récupération de la gare' });
   }
 };
 
@@ -46,30 +49,28 @@ exports.updateStationById = async (req, res) => {
   try {
     const station = await StationModel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!station) return res.status(404).json({ error: 'Gare non trouvée' });
-    res.json(station);
+    return res.status(200).json({ message: 'Gare mise à jour avec succès', station });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la gare' });
+    return res.status(500).json({ error: 'Erreur lors de la mise à jour de la gare' });
   }
 };
 
 // Supprimer d'une gare par ID (admin uniquement)
-const TrainModel = require('../models/trainModel'); // Assure-toi d'importer le modèle de Train
-
 exports.deleteStationById = async (req, res) => {
   try {
     // Suppression de la gare
     const station = await StationModel.findByIdAndDelete(req.params.id);
     if (!station) {
-      return res.status(404).json({ message: 'Gare non trouvée' });
+      return res.status(404).json({ error: 'Gare non trouvée' });
     }
 
     // Suppression de tous les trains liés à cette gare
     await TrainModel.deleteMany({ start_station: req.params.id});
     await TrainModel.deleteMany({ end_station: req.params.id});
 
-    res.json({ message: 'Gare et trains associés supprimés avec succès', station });
+    return res.status(204).json({ message: 'Gare et trains associés supprimés avec succès' });
   } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la suppression de la gare et des trains associés' });
+    return res.status(500).json({ error: 'Erreur lors de la suppression de la gare et des trains associés' });
   }
 };
 

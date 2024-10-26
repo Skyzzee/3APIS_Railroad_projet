@@ -9,11 +9,11 @@ exports.getTicketsByUserId = async (req, res) => {
     const user_id = user._id;
     const tickets = await TicketModel.find({ user_id });
 
-    if (!tickets.length) return res.status(404).json({ message: 'Aucun ticket trouvé pour cet utilisateur' });
+    if (!tickets.length) return res.status(404).json({ error: 'Aucun ticket trouvé pour cet utilisateur' });
 
-    res.json(tickets); 
+    return res.status(200).json({ message: 'Tous les tickets ont été récupérés avec succès', tickets }); 
   } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération des tickets' });
+    return res.status(500).json({ error: 'Erreur lors de la récupération des tickets' });
   }
 };
 
@@ -25,9 +25,9 @@ exports.getTicketsByTrainId = async (req, res) => {
 
     if (!tickets.length) return res.status(404).json({ error: 'Aucun ticket réservé pour ce train' });
 
-    res.json(tickets);
+    return res.status(200).json({ message: 'Tous les tickets ont été récupérés avec succès', tickets });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération des tickets' });
+    return res.status(500).json({ error: 'Erreur lors de la récupération des tickets' });
   }
 };
 
@@ -36,31 +36,31 @@ exports.getTicketsByTrainId = async (req, res) => {
 // Enregistrer une nouvelle gare
 exports.creationTicket = async (req, res) => {
   try {
-    const user = await getUserIdFromToken(req); // Récupère l'utilisateur à partir du token
+    const user = await getUserIdFromToken(req); // Récupération de l'utilisateur à partir du token
     const user_id = user._id;
     const train_id = req.params.id_train;
 
     const ticket = new TicketModel({ user_id, train_id });
     await ticket.save();
-    res.status(201).json({ message: "Le ticket a été réservé avec succès" });
+    res.status(201).json({ message: 'Le ticket a été réservé avec succès', ticket });
 
   } catch (error) {
-    res.status(500).json({ message: "Erreur Serveur" });
+    res.status(500).json({ error: 'Erreur lors de la réservation du ticket' });
   }
 };
 
 exports.getTicketById = async (req, res) => { 
   try {
     const ticket = await TicketModel.findById(req.params.id);
-    if (!ticket) return res.status(404).json({ message: 'Ticket non trouvé' });
+    if (!ticket) return res.status(404).json({ error: 'Ticket non trouvé' });
 
     const user = await getUserIdFromToken(req); 
 
-  if (!ticket.user_id.equals(user._id) && user._role === 'user') return res.status(401).json({ message: 'Accès interdit' });
+    if (!ticket.user_id.equals(user._id) && user._role === 'user') return res.status(401).json({ error: 'Accès interdit' });
     
-    res.json(ticket);
+    return res.status(200).json({ message: 'Le ticket à été récupéré avec succès', ticket });
   } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération du ticket' });
+    return res.status(500).json({ error: 'Erreur lors de la récupération du ticket' });
   }
 };
 
@@ -68,14 +68,14 @@ exports.getTicketById = async (req, res) => {
 exports.validateTicketById = async (req, res) => {
   try {
     const ticket = await TicketModel.findById(req.params.id);
-    if (!ticket) return res.status(404).json({ error: 'Ticket non trouvé' });
 
+    if (!ticket) return res.status(404).json({ error: 'Ticket non trouvé' });
     ticket.valid = true;
     await ticket.save();
-    res.json({ message: 'Ticket validé avec succès', ticket });
+    return res.status(200).json({ message: 'Ticket validé avec succès', ticket });
 
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la validation du ticket' });
+    return res.status(500).json({ error: 'Erreur lors de la validation du ticket' });
   }
 };
 

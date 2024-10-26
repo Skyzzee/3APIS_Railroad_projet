@@ -34,7 +34,7 @@ app.use('/ticket', ticketRoutes); // Route des tickets
 module.exports = app;
 
 // Lancer le serveur
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV === 'development') {
     app.listen(process.env.PORT, () => {
       console.log(`Serveur en écoute sur le port ${process.env.PORT}`);
     });

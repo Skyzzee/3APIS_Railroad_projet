@@ -5,133 +5,274 @@ const app = require('../app');
 const UserModel = require('../models/userModel');
 const { connectDB, disconnectDB } = require('../config/db');
 
-
 describe('Tests des routes utilisateur', () => {
-  let adminToken, userToken, adminId, userId;
+  let adminToken, userToken, employeeToken, adminId, userId, employeeId;
 
   beforeAll(async () => {
     await connectDB();
 
+    // Création d'un administrateur
     const adminPassword = await bcrypt.hash('admin123', 10);
-    const userPassword = await bcrypt.hash('user123', 10);
-
-    const adminUser = new UserModel({ pseudo: 'Admin', email: 'admin@example.com', password: adminPassword, role: 'admin' });
-    const regularUser = new UserModel({ pseudo: 'User', email: 'user@example.com', password: userPassword, role: 'user' });
-    
+    const adminUser = new UserModel({ pseudo: 'Admin', email: 'admin@gmail.com', password: adminPassword, role: 'admin' });
     await adminUser.save();
-    await regularUser.save();
-
     adminId = adminUser._id;
-    userId = regularUser._id;
-
     adminToken = jwt.sign({ id: adminId, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Création d'un utilisateur normal
+    const userPassword = await bcrypt.hash('user123', 10);
+    const regularUser = new UserModel({ pseudo: 'User', email: 'user@gmail.com', password: userPassword, role: 'user' });
+    await regularUser.save();
+    userId = regularUser._id;
     userToken = jwt.sign({ id: userId, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Création d'un employé
+    const employeePassword = await bcrypt.hash('employee123', 10);
+    const employeeUser = new UserModel({ pseudo: 'Employee', email: 'employee@gmail.com', password: employeePassword, role: 'employee' });
+    await employeeUser.save();
+    employeeId = employeeUser._id;
+    employeeToken = jwt.sign({ id: employeeId, role: 'employee' }, process.env.JWT_SECRET, { expiresIn: '1h' });
   });
 
   afterAll(async () => {
     await disconnectDB();
   });
 
-  // Test pour getAllUsers
-  it('Récupérer tous les utilisateurs', async () => {
-    const response = await request(app).get('/user/').set('Authorization', `Bearer ${adminToken}`);
-    expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveLength(2); // Admin et regular user créés en beforeAll
+
+
+  // ===========================
+  // Tests pour la récupération des utilisateurs
+  // ===========================
+
+  it('Récupérer tous les utilisateurs - Réussite pour Admin', async () => {
+    const res = await request(app).get('/user/').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les utilisateurs ont été récupérés avec succès');
+    expect(res.body.users).toBeInstanceOf(Array);
   });
 
-  // Test pour registerUser
-  it('Enregistrer un nouvel utilisateur', async () => {
-    const newUser = { pseudo: 'NewUser', email: 'newuser@example.com', password: 'newpassword' };
-    const response = await request(app).post('/user/register').send(newUser);
+  it('Récupérer tous les utilisateurs - Accès refusé pour User', async () => {
+    const res = await request(app).get('/user/').set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
 
-    expect(response.statusCode).toBe(201);
-    expect(response.body.message).toBe("L'utilisateur a été enregistré avec succès");
-    const userInDb = await UserModel.findOne({ email: 'newuser@example.com' });
+  it('Récupérer tous les utilisateurs - Accès refusé pour Employee', async () => {
+    const res = await request(app).get('/user/').set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+
+
+  // ===========================
+  // Tests pour l'enregistrement d'un utilisateur
+  // ===========================
+
+  it('Enregistrer un nouvel utilisateur', async () => {
+    const newUser = { pseudo: 'NewUser', email: 'newuser@gmail.com', password: 'newpassword' };
+    const res = await request(app).post('/user/register').send(newUser);
+    expect(res.statusCode).toBe(201);
+    expect(res.body.message).toBe('L\'utilisateur a été enregistré avec succès');
+    
+    const userInDb = await UserModel.findOne({ email: 'newuser@gmail.com' });
     expect(userInDb).not.toBeNull();
   });
 
   it('Erreur lors de l\'enregistrement d\'un utilisateur existant', async () => {
-    const newUser = { pseudo: 'Admin', email: 'admin@example.com', password: 'admin123' };
-    const response = await request(app).post('/user/register').send(newUser);
+    const adminUser = { pseudo: 'Admin', email: 'admin@gmail.com', password: 'admin123' };
+    const res = await request(app).post('/user/register').send(adminUser);
 
-    expect(response.statusCode).toBe(400);
-    expect(response.body.message).toBe("L'utilisateur est déjà existant !");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('L\'utilisateur est déjà existant !');
   });
 
-  // Test pour loginUser
+
+
+  // ===========================
+  // Tests pour la connexion des utilisateurs
+  // ===========================
+
   it('Connexion utilisateur avec succès', async () => {
-    const response = await request(app).post('/user/login').send({ email: 'newuser@example.com', password: 'newpassword' });
-    expect(response.statusCode).toBe(200);
-    expect(response.body.message).toBe('Connexion réussie !');
-    expect(response.body.token).toBeDefined();
+    const res = await request(app).post('/user/login').send({ email: 'newuser@gmail.com', password: 'newpassword' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Connexion réussie !');
+    expect(res.body.token).toBeDefined();
   });
 
   it('Erreur de connexion avec un mot de passe incorrect', async () => {
-    const response = await request(app).post('/user/login').send({ email: 'admin@example.com', password: 'wrongpassword' });
-    expect(response.statusCode).toBe(400);
-    expect(response.body.message).toBe('Le mot de passe est invalide !');
+    const res = await request(app).post('/user/login').send({ email: 'admin@gmail.com', password: 'admin123456789' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Le mot de passe est invalide !');
   });
 
-  // Test pour getUserById
-  it('Récupérer un utilisateur par ID', async () => {
-    const response = await request(app).get(`/user/${userId}`).set('Authorization', `Bearer ${adminToken}`);
-    expect(response.statusCode).toBe(200);
-    expect(response.body.pseudo).toBe('User');
+  it('Erreur de connexion avec un utilisateur non trouvé', async () => {
+    const res = await request(app).post('/user/login').send({ email: 'notfound@gmail.com', password: 'password' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('L\'email est invalide !');
   });
 
-  it('Erreur lors de la récupération d\'un utilisateur avec un ID inexistant', async () => {
-    const response = await request(app).get('/user/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`);
-    expect(response.statusCode).toBe(404);
-    expect(response.body.message).toBe('Utilisateur non trouvé');
+
+
+  // ===========================
+  // Tests pour récupération d'un utilisateur par ID
+  // ===========================
+
+  it('Récupérer un utilisateur par ID - Réussite pour Admin', async () => {
+    const res = await request(app).get(`/user/${userId}`).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Utilisateur récupéré avec succès');
+    expect(res.body.user.pseudo).toBe('User');
   });
 
-  // Test pour updateUserById
-  it('Mise à jour des informations de l\'utilisateur', async () => {
-    const response = await request(app)
+  it('Récupérer un utilisateur par ID - Accès refusé pour User', async () => {
+    const res = await request(app).get(`/user/${employeeId}`).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Récupérer un utilisateur par ID - Accès refusé pour Employee', async () => {
+    const res = await request(app).get(`/user/${userId}`).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+
+  
+  // ===========================
+  // Tests pour la modification du rôle d'un utilisateur
+  // ===========================
+
+  it('Mise à jour des informations de l\'utilisateur - Réussite pour Admin', async () => {
+    const res = await request(app)
       .put(`/user/${userId}`)
-      .send({ pseudo: 'User' })
+      .send({ pseudo: 'UpdatedUser' })
       .set('Authorization', `Bearer ${adminToken}`);
     
-    expect(response.statusCode).toBe(200);
-    expect(response.body.pseudo).toBe('User');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Utilisateur mis à jour avec succès');
+    expect(res.body.user.pseudo).toBe('UpdatedUser');
+  });
+
+  it('Mise à jour ses propres informations  - Réussite pour User', async () => {
+    const res = await request(app)
+      .put(`/user/${userId}`)
+      .send({ pseudo: 'User' })
+      .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.message).toBe('Utilisateur mis à jour avec succès');
+      expect(res.body.user.pseudo).toBe('User');
+  });
+
+  it('Mise à jour des informations de l\'utilisateur - Accès refusé pour User', async () => {
+    const res = await request(app)
+      .put(`/user/${employeeId}`)
+      .send({ pseudo: 'User' })
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Mise à jour des informations de l\'utilisateur - Accès refusé pour Employee', async () => {
+    const res = await request(app)
+      .put(`/user/${userId}`)
+      .send({ pseudo: 'User' })
+      .set('Authorization', `Bearer ${employeeToken}`);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
   });
 
   it('Erreur de mise à jour si l\'utilisateur n\'est pas trouvé', async () => {
-    const response = await request(app).put('/user/60f5f8a2b8a245001c09d9c2').send({ pseudo: 'Yona' }).set('Authorization', `Bearer ${adminToken}`);
-    expect(response.statusCode).toBe(404);
-    expect(response.body.error).toBe('Utilisateur non trouvé');
+    const res = await request(app).put('/user/60f5f8a2b8a245001c09d9c2').send({ pseudo: 'Yona' }).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Utilisateur non trouvé');
   });
 
+
   
-  // Test pour editRoleUser
-  it('Modification du rôle d\'un utilisateur', async () => {
-    const response = await request(app)
-    .put(`/user/${userId}/role`)
-    .send({ role: 'admin' })
-    .set('Authorization', `Bearer ${adminToken}`);
-    
-    expect(response.statusCode).toBe(200);
-    expect(response.body.message).toBe('Rôle mis à jour avec succès');
-    expect(response.body.role).toBe('admin');
-  });
+  // ===========================
+  // Tests pour la modification du rôle d'un utilisateur
+  // ===========================
   
-  it('Erreur si le rôle est invalide', async () => {
-    const response = await request(app)
-    .put(`/user/${userId}/role`)
-    .send({ role: 'superuser' })
-    .set('Authorization', `Bearer ${adminToken}`);
+  it('Modification du rôle d\'un utilisateur - Réussite pour Admin', async () => {
+    const res = await request(app)
+      .put(`/user/${adminId}/role`)
+      .send({ role: 'admin' })
+      .set('Authorization', `Bearer ${adminToken}`);
     
-    expect(response.statusCode).toBe(400);
-    expect(response.body.error).toBe('Rôle invalide');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Rôle mis à jour avec succès');
   });
 
-  // Test pour deleteUserById
-  it('Suppression d\'un utilisateur par ID', async () => {
-    const response = await request(app).delete(`/user/${userId}`).set('Authorization', `Bearer ${adminToken}`);
-    expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveProperty('message', 'Utilisateur supprimé avec succès');
+  it('Erreur de modification du rôle - Rôle invalide', async () => {
+    const res = await request(app)
+      .put(`/user/${userId}/role`)
+      .send({ role: 'invalidRole' })
+      .set('Authorization', `Bearer ${adminToken}`);
+    
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Rôle invalide');
+  });
+
+  it('Modification du rôle d\'un utilisateur - Accès refusé pour User', async () => {
+    const res = await request(app)
+      .put(`/user/${userId}/role`)
+      .send({ role: 'admin' })
+      .set('Authorization', `Bearer ${userToken}`);
+    
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Modification du rôle d\'un utilisateur - Accès refusé pour Employee', async () => {
+    const res = await request(app)
+      .put(`/user/${userId}/role`)
+      .send({ role: 'admin' })
+      .set('Authorization', `Bearer ${employeeToken}`);
+    
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+
   
-    const userInDb = await UserModel.findById(userId);
-    expect(userInDb).toBeNull();
+  // ===========================
+  // Tests pour la suppression d'un utilisateur
+  // ===========================
+
+  it('Suppression d\'un utilisateur - Accès refusé pour User', async () => {
+    const res = await request(app)
+    .delete(`/user/${employeeId}`)
+    .set('Authorization', `Bearer ${userToken}`);
+    
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+  
+  it('Suppression d\'un utilisateur - Accès refusé pour Employee', async () => {
+    const res = await request(app)
+    .delete(`/user/${userId}`)
+    .set('Authorization', `Bearer ${employeeToken}`);
+    
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Suppression de son propre compte - Réussite pour User', async () => {
+    const res = await request(app)
+    .delete(`/user/${userId}`)
+    .set('Authorization', `Bearer ${userToken}`);
+    
+    expect(res.statusCode).toBe(204);
+  });
+
+  it('Suppression d\'un utilisateur - Réussite pour Admin', async () => {
+    const res = await request(app)
+      .delete(`/user/${employeeId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    
+    expect(res.statusCode).toBe(204);
   });
 });

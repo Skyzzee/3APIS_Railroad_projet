@@ -1,119 +1,183 @@
 const request = require('supertest');
+const app = require('../app');
+const UserModel = require('../models/userModel');
+const StationModel = require('../models/stationModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const app = require('../app');
-const StationModel = require('../models/stationModel');
-const UserModel = require('../models/userModel');
-const { connectDB, disconnectDB } = require('../config/db');
 
-describe('Tests des routes gares', () => {
-  let adminToken, stationId;
+// Tests des routes pour les gares
+describe('Tests des routes des gares', () => {
+  let adminToken, userToken, employeeToken;
 
   beforeAll(async () => {
     await connectDB();
 
-    // Création d'un utilisateur admin
+    // Création d'un administrateur
     const adminPassword = await bcrypt.hash('admin123', 10);
-    const adminUser = new UserModel({
-      pseudo: 'Admin',
-      email: 'admin@example.com',
-      password: adminPassword,
-      role: 'admin'
-    });
-    const userPassword = await bcrypt.hash('user123', 10);
-    const regularUser = new UserModel({
-      pseudo: 'User',
-      email: 'user@example.com',
-      password: userPassword,
-      role: 'user'
-    });
-    
+    const adminUser = new UserModel({ pseudo: 'Admin', email: 'admin@gmail.com', password: adminPassword, role: 'admin' });
     await adminUser.save();
-    await regularUser.save();
-    
-    // Génération d'un token pour l'utilisateur admin
-    const adminId = adminUser._id;
+    adminId = adminUser._id;
     adminToken = jwt.sign({ id: adminId, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    const userId = regularUser._id;
+
+    // Création d'un utilisateur normal
+    const userPassword = await bcrypt.hash('user123', 10);
+    const regularUser = new UserModel({ pseudo: 'User', email: 'user@gmail.com', password: userPassword, role: 'user' });
+    await regularUser.save();
+    userId = regularUser._id;
     userToken = jwt.sign({ id: userId, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Création d'un employé
+    const employeePassword = await bcrypt.hash('employee123', 10);
+    const employeeUser = new UserModel({ pseudo: 'Employee', email: 'employee@gmail.com', password: employeePassword, role: 'employee' });
+    await employeeUser.save();
+    employeeId = employeeUser._id;
+    employeeToken = jwt.sign({ id: employeeId, role: 'employee' }, process.env.JWT_SECRET, { expiresIn: '1h' });
   });
 
   afterAll(async () => {
     await disconnectDB();
   });
 
+
+
+  // ==============================
+  // Récupérer toutes les gares
+  // ==============================
+
+  it('Récupérer toutes les gares - Réussite', async () => {
+    const res = await request(app).get('/station/').set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Gares récupérées avec succès');
+    expect(res.body.stations).toBeDefined();
+  });
+
+
+
+  // ==============================
+  // Créer une nouvelle gare
+  // ==============================
+
+  it('Créer une nouvelle gare - Réussite pour Admin', async () => {
+    const newStation = { name: 'Gare Dijon', open_hour: '06:00', close_hour: '22:00', image: 'image_url.jpg' };
+
+    const res = await request(app).post('/station/create').send(newStation).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(201);
+    expect(res.body.message).toBe('La gare a été enregistrée avec succès');
+    expect(res.body.station).toBeDefined();
+  });
+
+  it('Créer une nouvelle gare - Accès refusé pour User', async () => {
+    const newStation = { name: 'Gare Lyon', open_hour: '06:00', close_hour: '22:00', image: 'image_url.jpg' };
+
+    const res = await request(app).post('/station/create').send(newStation).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Créer une nouvelle gare - Accès refusé pour Employee', async () => {
+    const newStation = { name: 'Gare Lyon', open_hour: '06:00', close_hour: '22:00', image: 'image_url.jpg' };
+
+    const res = await request(app).post('/station/create').send(newStation).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Créer une nouvelle gare - Erreur si champs manquants', async () => {
+    const newStation = { name: '' }; // Champs requis manquants
+    const res = await request(app).post('/station/create').send(newStation).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Le nom, les heures d\'ouverture et de fermeture ainsi que l\'image sont requis !');
+  });
+
+
+
+  // ==============================
+  // Récupérer une gare par ID
+  // ==============================
+
+  it('Récupérer une gare par ID - Réussite', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon' });
+    const res = await request(app).get(`/station/${station.id}`).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Gare récupérée avec succès');
+    expect(res.body.station).toBeDefined();
+  });
+
+  it('Récupérer une gare par ID - Gare non trouvée', async () => {
+    const res = await request(app).get('/station/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Gare non trouvée');
+  });
+
+
+
+  // ==============================
+  // Mettre à jour une gare par ID
+  // ==============================
+
+  it('Mettre à jour une gare par ID - Réussite pour Admin', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon' });
+    const updatedStation = { name: 'Gare Dijon Modifiée' };
+    const res = await request(app).put(`/station/${station.id}`).send(updatedStation).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Gare mise à jour avec succès');
+    expect(res.body.station.name).toBe('Gare Dijon Modifiée');
+  });
+
+  it('Mettre à jour une gare par ID - Accès refusé pour User', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon Modifiée' });
+    const updatedStation = { name: 'Gare Dijon' };
+    const res = await request(app).put(`/station/${station.id}`).send(updatedStation).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Mettre à jour une gare par ID - Accès refusé pour Employee', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon Modifiée' });
+    const updatedStation = { name: 'Gare Dijon' };
+    const res = await request(app).put(`/station/${station.id}`).send(updatedStation).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Mettre à jour une gare par ID - Gare non trouvée', async () => {
+    const res = await request(app).put('/station/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Gare non trouvée');
+  });
+
+
+
+  // ==============================
+  // Supprimer une gare par ID
+  // ==============================
+
+  it('Supprimer une gare par ID - Accès refusé pour User', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon Modifiée' });
+    const res = await request(app).delete(`/station/${station.id}`).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
   
-    // Test pour creationStation
-    it('Enregistrer une nouvelle gare', async () => {
-      const newStation = { name: 'Gare A', open_hour: '08:00', close_hour: '20:00', image: 'image_url_a' };
-      const response = await request(app).post('/station/create').set('Authorization', `Bearer ${adminToken}`).send(newStation);
-      
-      expect(response.statusCode).toBe(201);
-      expect(response.body.message).toBe("La gare a été enregistrée avec succès");
-      
-      // Vérifiez que la gare est enregistrée dans la base de données
-      const stationInDb = await StationModel.findOne({ name: 'Gare A' });
-      expect(stationInDb).not.toBeNull();
-      stationId = stationInDb._id;
-    });
-    
-    it('Erreur lors de l\'enregistrement d\'une gare existante', async () => {
-        const duplicateStation = { name: 'Gare A', open_hour: '09:00', close_hour: '21:00', image: 'image_url_b' };
-        const response = await request(app).post('/station/create').set('Authorization', `Bearer ${adminToken}`).send(duplicateStation);
-        
-        expect(response.statusCode).toBe(400);
-        expect(response.body.message).toBe("La gare est déjà existante !");
-    });
+  it('Supprimer une gare par ID - Accès refusé pour Employee', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon Modifiée' });
+    const res = await request(app).delete(`/station/${station.id}`).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
 
-    // Test pour getAllStation
-    it('Récupérer toutes les gares', async () => {
-        const response = await request(app).get('/station/');
-        expect(response.statusCode).toBe(200);
-    });
+  it('Supprimer une gare par ID - Réussite pour Admin', async () => {
+    const station = await StationModel.findOne({ name: 'Gare Dijon Modifiée' });
+    const res = await request(app).delete(`/station/${station.id}`).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(204);
 
-    // Test pour getStationById
-    it('Récupérer une gare par ID', async () => {
-        const response = await request(app).get(`/station/${stationId}`);
-        expect(response.statusCode).toBe(200);
-        expect(response.body.name).toBe('Gare A');
-    });
-
-    it('Erreur lors de la récupération d\'une gare avec un ID inexistant', async () => {
-        const response = await request(app).get('/station/60f5f8a2b8a245001c09b9c2');
-        expect(response.statusCode).toBe(404);
-        expect(response.body.error).toBe('Gare non trouvée');
-    });
-
-
-    // Test pour updateStationById
-    it('Mettre à jour une gare par ID', async () => {
-        const updatedStation = { name: 'Gare A Updated', open_hour: '09:00', close_hour: '19:00', image: 'image_url_updated' };
-        const response = await request(app).put(`/station/${stationId}`).set('Authorization', `Bearer ${adminToken}`).send(updatedStation);
-
-        expect(response.statusCode).toBe(200);
-        expect(response.body.name).toBe('Gare A Updated');
-    });
-
-    it('Erreur de mise à jour si la gare n\'est pas trouvée', async () => {
-        const response = await request(app).put('/station/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`).send({ name: 'Gare Not Found' });
-        expect(response.statusCode).toBe(404);
-        expect(response.body.error).toBe('Gare non trouvée');
-    });
-
-    // Test pour deleteStationById
-    it('Supprimer une gare par ID', async () => {
-        const response = await request(app).delete(`/station/${stationId}`).set('Authorization', `Bearer ${adminToken}`);
-        expect(response.statusCode).toBe(200);
-        expect(response.body.message).toBe('Gare et trains associés supprimés avec succès');
-
-        const stationInDb = await StationModel.findById(stationId);
-        expect(stationInDb).toBeNull();
-    });
-
-    // Test pour accès sans token sur les routes admin
-    it('Erreur d\'accès sans token pour la création d\'une gare', async () => {
-        const newStation = { name: 'Gare B', open_hour: '10:00', close_hour: '22:00', image: 'image_url_b' };
-        const response = await request(app).post('/station/create').send(newStation);
-        expect(response.statusCode).toBe(403);
-    });
+    const deletedStation = await StationModel.findById(station.id);
+    expect(deletedStation).toBeNull(); // Vérification que la gare a bien été supprimée
+  });
+  
+  it('Supprimer une gare par ID - Gare non trouvée', async () => {
+    const res = await request(app).delete('/station/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Gare non trouvée');
+  });
 });

@@ -4,43 +4,36 @@ const UserModel = require('../models/userModel');
 // Fonction pour décoder le token et récupérer l'utilisateur
 const getUserIdFromToken = async (req) => {
   const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) {
-    throw new Error("Token manquant");
-  }
+  if (!token) throw new Error('Token manquant');
 
   try {
-    // Vérifie et décode le token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Recherche l'utilisateur en fonction de l'ID extrait du token
     const user = await UserModel.findById(decoded.id);
-    if (!user) {
-      throw new Error("Utilisateur non trouvé");
-    }
-    return user; // Retourne l'utilisateur s'il est trouvé
+    if (!user) throw new Error('Utilisateur non trouvé');
+    return user;
+
   } catch (error) {
-    // Gestion des erreurs liées au token et à la recherche utilisateur
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      throw new Error("Token invalide");
-    }
-    throw new Error("Erreur lors de la récupération de l'utilisateur");
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') throw new Error('Token invalide');
+    throw new Error('Erreur lors de la récupération de l\'utilisateur');
   }
 };
 
 // Middleware pour vérifier le token JWT
 const verifyToken = async (req, res, next) => {
   try {
-    const user = await getUserIdFromToken(req); // Utilise la fonction pour récupérer l'utilisateur
+    const user = await getUserIdFromToken(req);
     req.user = user;
-    next(); // Continue si tout est correct
+    next();
+    
   } catch (error) {
-    if (error.message === "Token manquant") {
-      return res.status(403).json({ message: "Veuillez vous connecter" });
-    } else if (error.message === "Token invalide") {
-      return res.status(401).json({ message: "Token invalide" });
-    } else if (error.message === "Utilisateur non trouvé") {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    if (error.message === 'Token manquant') {
+      return res.status(403).json({ error: 'Veuillez vous connecter' });
+    } else if (error.message === 'Token invalide') {
+      return res.status(401).json({ error: 'Token invalide' });
+    } else if (error.message === 'Utilisateur non trouvé') {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
     } else {
-      return res.status(500).json({ message: "Erreur lors de la récupération de l'utilisateur" });
+      return res.status(500).json({ error: 'Erreur lors de la récupération de l\'utilisateur' });
     }
   }
 };
@@ -50,15 +43,11 @@ const authorizeRole = (roles) => {
   return (req, res, next) => {
     const user = req.user;
 
-    if (!user) {
-      return res.status(401).json({ message: "Utilisateur non authentifié" });
-    }
+    if (!user) return res.status(401).json({ error: 'Utilisateur non authentifié' });
 
-    if (roles.includes(user.role) || req.params.id === user._id.toString()) {
-      return next();
-    }
-
-    return res.status(403).json({ message: "Accès refusé" });
+    if (roles.includes(user.role) || req.params.id === user._id.toString()) return next();
+    
+    return res.status(403).json({ error: 'Accès refusé' });
   };
 };
 
