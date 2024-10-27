@@ -1,14 +1,64 @@
+const Joi = require('joi');
 const TrainModel = require('../models/trainModel');
 
-// Récupérer tous les trains
+// Validation des paramètres de requête avec messages d'erreur personnalisés
+const validateQueryParams = (query) => {
+  const schema = Joi.object({
+    page: Joi.number().integer().min(1).default(1).messages({
+      'number.base': 'La page doit être un nombre',
+      'number.integer': 'La page doit être un entier',
+      'number.min': 'La page doit être supérieure ou égale à 1'
+    }),
+    limit: Joi.number().integer().min(1).max(100).default(10).messages({
+      'number.base': 'La limite doit être un nombre',
+      'number.integer': 'La limite doit être un entier',
+      'number.min': 'La limite doit être supérieure ou égale à 1',
+      'number.max': 'La limite ne peut pas dépasser 100'
+    }),
+    sort: Joi.string().valid('name', 'start_station', 'end_station', 'time_of_departure').default('name').messages({
+      'string.base': 'Le champ de tri doit être une chaîne',
+      'any.only': 'Le champ de tri doit être l’un des suivants : name, start_station, end_station, time_of_departure'
+    }),
+    order: Joi.string().valid('asc', 'desc').default('asc').messages({
+      'string.base': 'L\'ordre doit être une chaîne',
+      'any.only': 'L\'ordre doit être soit "asc" soit "desc"'
+    }),
+  });
+  return schema.validate(query);
+};
+
+// Récupérer tous les trains avec tri et pagination
 exports.getAllTrains = async (req, res) => {
   try {
-    const trains = await TrainModel.find();
-    return res.status(200).json({ message: 'Tous les trains ont été récupérés avec succès', trains });
+    const { error, value } = validateQueryParams(req.query);
+    if (error) return res.status(400).json({ error: error.message });
+
+    const { page = 1, limit = 10, sort = 'name', order = 'asc' } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    const sortOrder = order === 'asc' ? 1 : -1; // 1 pour ascendant, -1 pour descendant
+    const sortField = ['name', 'start_station', 'end_station', 'time_of_departure'].includes(sort) ? sort : 'name';
+    const offset = (pageNum - 1) * limitNum;
+
+    const trains = await TrainModel.find()
+      .sort({ [sortField]: sortOrder })
+      .skip(offset)
+      .limit(limitNum);
+
+    const total = await TrainModel.countDocuments(); 
+
+    if (!trains.length) {
+      return res.status(404).json({ error: 'Aucun train trouvé pour cette page' });
+    }
+
+    return res.status(200).json({ message: 'Tous les trains ont été récupérés avec succès', total, trains });
   } catch (error) {
     return res.status(500).json({ error: 'Erreur lors de la récupération des trains' });
   }
 };
+
+
 
 // Enregistrer un nouveau train (admin uniquement)
 exports.creationTrain = async (req, res) => {
