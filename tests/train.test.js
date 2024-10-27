@@ -1,108 +1,290 @@
-const mongoose = require('mongoose');
 const request = require('supertest');
 const app = require('../app');
-const { connectDB, disconnectDB } = require('../config/db');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const UserModel = require('../models/userModel');
 const TrainModel = require('../models/trainModel');
+const StationModel = require('../models/stationModel');
+const { connectDB, disconnectDB } = require('../config/db');
 
-describe('Tests des routes /train', () => {
-  
+// Tests des routes pour les trains
+describe('Tests des routes des trains', () => {
+  let adminToken, userToken, employeeToken, adminId, userId, employeeId, stationAId, stationBId, stationCId, stationDId;
+
   beforeAll(async () => {
     await connectDB();
+
+    // Création d'un administrateur
+    const adminPassword = await bcrypt.hash('admin123', 10);
+    const adminUser = new UserModel({ pseudo: 'Admin', email: 'admin@gmail.com', password: adminPassword, role: 'admin' });
+    await adminUser.save();
+    adminId = adminUser._id;
+    adminToken = jwt.sign({ id: adminId, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Création d'un utilisateur normal
+    const userPassword = await bcrypt.hash('user123', 10);
+    const regularUser = new UserModel({ pseudo: 'User', email: 'user@gmail.com', password: userPassword, role: 'user' });
+    await regularUser.save();
+    userId = regularUser._id;
+    userToken = jwt.sign({ id: userId, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Création d'un employé
+    const employeePassword = await bcrypt.hash('employee123', 10);
+    const employeeUser = new UserModel({ pseudo: 'Employee', email: 'employee@gmail.com', password: employeePassword, role: 'employee' });
+    await employeeUser.save();
+    employeeId = employeeUser._id;
+    employeeToken = jwt.sign({ id: employeeId, role: 'employee' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Création de deux gares
+    const stationA = new StationModel({ name: 'Gare de Dijon', open_hour: '06:00', close_hour: '22:00', image: 'image_url.jpg' });
+    const stationB = new StationModel({ name: 'Gare de Lyon', open_hour: '05:00', close_hour: '23:00', image: 'image_url.jpg' });
+    const stationC = new StationModel({ name: 'Gare de Paris', open_hour: '03:00', close_hour: '00:00', image: 'image_url.jpg' });
+    const stationD = new StationModel({ name: 'Gare de Toulouse', open_hour: '05:00', close_hour: '23:00', image: 'image_url.jpg' });
+    await stationA.save();
+    await stationB.save();
+    await stationC.save();
+    await stationD.save();
+    stationAId = stationA._id;
+    stationBId = stationB._id;
+    stationCId = stationB._id;
+    stationDId = stationB._id;
   });
-  
+
   afterAll(async () => {
     await disconnectDB();
   });
+
+
+
+  // ---------------------
+  // Récupérer tous les trains
+  // ---------------------
+
+  it('Récupérer tous les trains - Réussite', async () => {
+    // Création de données fictives
+    await TrainModel.create([
+        { name: 'Train E', start_station: stationAId, end_station: stationBId, time_of_departure: new Date('2024-10-01T10:00:00Z') },
+        { name: 'Train F', start_station: stationAId, end_station: stationBId, time_of_departure: new Date('2024-10-02T10:00:00Z') },
+        { name: 'Train G', start_station: stationAId, end_station: stationCId, time_of_departure: new Date('2024-10-03T10:00:00Z') },
+        { name: 'Train H', start_station: stationAId, end_station: stationCId, time_of_departure: new Date('2024-10-04T10:00:00Z') },
+        { name: 'Train I', start_station: stationAId, end_station: stationDId, time_of_departure: new Date('2024-10-05T10:00:00Z') },
+        { name: 'Train J', start_station: stationAId, end_station: stationDId, time_of_departure: new Date('2024-10-06T10:00:00Z') },
+        { name: 'Train K', start_station: stationBId, end_station: stationCId, time_of_departure: new Date('2024-10-07T10:00:00Z') },
+        { name: 'Train L', start_station: stationBId, end_station: stationCId, time_of_departure: new Date('2024-10-08T10:00:00Z') },
+        { name: 'Train M', start_station: stationBId, end_station: stationDId, time_of_departure: new Date('2024-10-09T10:00:00Z') },
+        { name: 'Train N', start_station: stationBId, end_station: stationDId, time_of_departure: new Date('2024-10-10T10:00:00Z') },
+        { name: 'Train O', start_station: stationBId, end_station: stationAId, time_of_departure: new Date('2024-10-11T10:00:00Z') },
+        { name: 'Train P', start_station: stationBId, end_station: stationAId, time_of_departure: new Date('2024-10-12T10:00:00Z') },
+        { name: 'Train Q', start_station: stationCId, end_station: stationDId, time_of_departure: new Date('2024-10-13T10:00:00Z') },
+        { name: 'Train R', start_station: stationCId, end_station: stationDId, time_of_departure: new Date('2024-10-14T10:00:00Z') },
+        { name: 'Train S', start_station: stationCId, end_station: stationAId, time_of_departure: new Date('2024-10-15T10:00:00Z') },
+        { name: 'Train T', start_station: stationCId, end_station: stationAId, time_of_departure: new Date('2024-10-16T10:00:00Z') },
+        { name: 'Train U', start_station: stationCId, end_station: stationBId, time_of_departure: new Date('2024-10-17T10:00:00Z') },
+        { name: 'Train V', start_station: stationCId, end_station: stationBId, time_of_departure: new Date('2024-10-18T10:00:00Z') },
+        { name: 'Train W', start_station: stationDId, end_station: stationAId, time_of_departure: new Date('2024-10-19T10:00:00Z') },
+        { name: 'Train X', start_station: stationDId, end_station: stationAId, time_of_departure: new Date('2024-10-20T10:00:00Z') },
+        { name: 'Train Y', start_station: stationDId, end_station: stationBId, time_of_departure: new Date('2024-10-21T10:00:00Z') },
+        { name: 'Train Z', start_station: stationDId, end_station: stationBId, time_of_departure: new Date('2024-10-22T10:00:00Z') },
+    ]);
+    const res = await request(app).get('/train/');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les trains ont été récupérés avec succès');
+    expect(res.body.trains).toBeDefined();
+  });
+
+  it('Récupérer tous les trains - Réussite avec tri par nom', async () => {
+    const res = await request(app).get('/train?page=1&limit=10&sort=name&order=asc');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les trains ont été récupérés avec succès');
+    expect(res.body.trains.length).toBeLessThanOrEqual(10);
+    expect(res.body.trains[0].name.localeCompare(res.body.trains[1].name)).toBeLessThanOrEqual(0);
+  });
+
+  it('Récupérer tous les trains - Réussite avec tri par date de départ', async () => {
+    const res = await request(app).get('/train?page=1&limit=10&sort=time_of_departure&order=asc');
   
-  afterEach(async () => {
-    // Nettoyage des données entre chaque test
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany(); // Supprimer les documents
-    }
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les trains ont été récupérés avec succès');
+    expect(res.body.trains.length).toBeLessThanOrEqual(10);
+    expect(new Date(res.body.trains[0].time_of_departure).getTime()).toBeLessThanOrEqual(new Date(res.body.trains[1].time_of_departure).getTime());
+  });
+  
+
+  it('Récupérer tous les trains - Réussite avec tri par station de départ', async () => {
+    const res = await request(app).get('/train?page=1&limit=10&sort=start_station&order=asc');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les trains ont été récupérés avec succès');
+    expect(res.body.trains.length).toBeLessThanOrEqual(10);
+    expect(res.body.trains[0].start_station.localeCompare(res.body.trains[1].start_station)).toBeLessThanOrEqual(0);
   });
 
-  it('Récupérer tous les trains', async () => {
-    const train1 = new TrainModel({ name: 'Train A', start_station: 'Paris', end_station: 'Lyon', time_of_departure: '2024-10-15T10:00:00Z' });
-    const train2 = new TrainModel({ name: 'Train B', start_station: 'Lyon', end_station: 'Dijon', time_of_departure: '2024-10-16T15:00:00Z' });
-    await train1.save();
-    await train2.save();
+  it('Récupérer tous les trains - Réussite avec tri par station d\'arrivée', async () => {
+    const res = await request(app).get('/train?page=1&limit=10&sort=end_station&order=asc');
 
-    const response = await request(app).get('/train/');
-
-    expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveLength(2);
-    expect(response.body[0].name).toBe('Train A');
-    expect(response.body[1].name).toBe('Train B');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les trains ont été récupérés avec succès');
+    expect(res.body.trains.length).toBeLessThanOrEqual(10);
+    expect(res.body.trains[0].end_station.localeCompare(res.body.trains[1].end_station)).toBeLessThanOrEqual(0);
   });
 
-  it('Enregistrer un nouveau train', async () => {
-    const newTrain = { name: 'Train C', start_station: 'Lyon', end_station: 'Toulouse', time_of_departure:'2024-10-16T13:00:00Z' };
-    const response = await request(app).post('/train/create').send(newTrain);
+  it('Récupérer tous les trains - Échouer avec page non valide', async () => {
+    const res = await request(app).get('/train?page=-1&limit=2');
 
-    expect(response.statusCode).toBe(201);
-    expect(response.body.message).toBe("Le train a été enregistré avec succès");
-
-    // Vérifie que le train est bien dans la base de données
-    const trainInDb = await TrainModel.findOne({ name: 'Train C' });
-    expect(trainInDb).not.toBeNull();
-    expect(trainInDb.name).toBe('Train C');
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('La page doit être supérieure ou égale à 1');
   });
 
-  it('Erreur si le train existe déjà', async () => {
-    const newTrain = { name: 'Train C', start_station: 'Lyon', end_station: 'Toulouse', time_of_departure:'2024-10-16T13:00:00Z' };
-    await request(app).post('/train/create').send(newTrain); // Créer le train 
+  it('Récupérer tous les trains - Échouer avec limit trop élevé', async () => {
+    const res = await request(app).get('/train?page=1&limit=1000');
 
-    const response = await request(app).post('/train/create').send(newTrain); // Essaie de le recréer
-    expect(response.statusCode).toBe(400);
-    expect(response.body.message).toBe("Le train est déjà existant !");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('La limite ne peut pas dépasser 100');
   });
 
-  it('Récupérer un train par ID', async () => {
-    const newTrain = new TrainModel({  name: 'Train D', start_station: 'Marseille', end_station: 'Toulouse', time_of_departure:'2024-10-18T17:00:00Z'  });
-    await newTrain.save();
+  it('Récupérer tous les trains - Échouer avec un tri non valide', async () => {
+    const res = await request(app).get('/train?page=1&limit=2&sort=invalidField');
 
-    const response = await request(app).get(`/train/${newTrain._id}`);
-    expect(response.statusCode).toBe(200);
-    expect(response.body.name).toBe('Train D');
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Le champ de tri doit être l’un des suivants : name, start_station, end_station, time_of_departure');
   });
 
-  it('Train non trouvé', async () => {
-    const response = await request(app).get('/train/60f5f8a2b8a245001c09d9c2'); // Un ID aléatoire
-    expect(response.statusCode).toBe(404);
-    expect(response.body.error).toBe('Train non trouvé');
+  it('Récupérer tous les trains - Échouer avec une page qui n\'existe pas', async () => {
+    const res = await request(app).get('/train?page=45&limit=1');
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Aucun train trouvé pour cette page');
   });
 
-  it('Modifier un train par ID', async () => {
-    const newTrain = new TrainModel({  name: 'Train E', start_station: 'Dijon', end_station: 'Toulouse', time_of_departure:'2024-10-16T15:00:00Z' });
-    await newTrain.save();
 
-    const response = await request(app).put(`/train/${newTrain._id}`).send({ name: 'Train Z' });
-    expect(response.statusCode).toBe(200);
-    expect(response.body.name).toBe('Train Z');
+
+  // ---------------------
+  // Créer un nouveau train
+  // ---------------------
+
+  it('Créer un nouveau train - Réussite pour Admin', async () => {
+    const newTrain = { name: 'Train A', start_station: stationAId, end_station: stationBId, time_of_departure: '2024-10-26T10:00:00Z' };
+
+    const res = await request(app).post('/train/create').send(newTrain).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(201);
+    expect(res.body.message).toBe('Train enregistré avec succès');
+    expect(res.body.train).toBeDefined();
   });
 
-  it('Échec si le train n’est pas trouvé lors de la mise à jour', async () => {
-    const response = await request(app).put('/train/60f5f8a2b8a245001c09d9c2').send({ name: 'Train Z' });
-    expect(response.statusCode).toBe(404);
-    expect(response.body.error).toBe('Train non trouvé');
+  it('Créer un nouveau train - Accès refusé pour User', async () => {
+    const newTrain = { name: 'Train B', start_station: stationAId, end_station: stationBId, time_of_departure: '2024-10-27T15:00:00Z' };
+
+    const res = await request(app).post('/train/create').send(newTrain).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
   });
 
-  it('Supprimer un train par ID', async () => {
-    const newTrain = new TrainModel({  name: 'Train F', start_station: 'Paris', end_station: 'Lille', time_of_departure:'2024-10-17T11:00:00Z'  });
-    await newTrain.save();
+  it('Créer un nouveau train - Accès refusé pour Employee', async () => {
+    const newTrain = {
+      name: 'Train C', start_station: stationAId, end_station: stationBId, time_of_departure: '2024-10-28T13:00:00Z' 
+    };
 
-    const response = await request(app).delete(`/train/${newTrain._id}`);
-    expect(response.statusCode).toBe(200);
-    expect(response.body.name).toBe('Train F');
-
-    const trainInDb = await TrainModel.findById(newTrain._id);
-    expect(trainInDb).toBeNull(); // Vérifie que le train a bien été supprimé
+    const res = await request(app).post('/train/create').send(newTrain).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
   });
 
-  it('Échec si le train n’est pas trouvé lors de la suppression', async () => {
-    const response = await request(app).delete('/train/60f5f8a2b8a245001c09d9c2'); // ID inexistant
-    expect(response.statusCode).toBe(404);
-    expect(response.body.error).toBe('Train non trouvé');
+  it('Créer un nouveau train - Erreur si champs manquants', async () => {
+    const newTrain = { name: '' }; // Champs requis manquants
+    const res = await request(app).post('/train/create').send(newTrain).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Le nom, les stations de début et de fin ainsi que l\'heure de départ sont requis !');
+  });
+
+  it('Créer un nouveau train avec un nom existant - Erreur', async () => {
+    const newTrain = { name: 'Train A', start_station: stationAId, end_station: stationBId, time_of_departure: '2024-10-27T15:00:00Z' }; // Ce train a déjà été créé
+
+    const res = await request(app).post('/train/create').send(newTrain).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Le train est déjà existant !');
+  });
+
+
+
+  // ---------------------
+  // Récupérer un train par ID
+  // ---------------------
+
+  it('Récupérer un train par ID - Réussite', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A' });
+    const res = await request(app).get(`/train/${train.id}`).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Train récupéré avec succès');
+    expect(res.body.train).toBeDefined();
+  });
+
+  it('Récupérer un train par ID - Train non trouvé', async () => {
+    const res = await request(app).get('/train/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Train non trouvé');
+  });
+
+
+
+  // ---------------------
+  // Mettre à jour un train par ID
+  // ---------------------
+
+  it('Mettre à jour un train par ID - Réussite pour Admin', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A' });
+    const updatedTrain = { name: 'Train A Modifié' };
+    const res = await request(app).put(`/train/${train.id}`).send(updatedTrain).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Train mis à jour avec succès');
+    expect(res.body.train.name).toBe('Train A Modifié');
+  });
+
+  it('Mettre à jour un train par ID - Accès refusé pour User', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A Modifié' });
+    const updatedTrain = { name: 'Train A' };
+    const res = await request(app).put(`/train/${train.id}`).send(updatedTrain).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Mettre à jour un train par ID - Accès refusé pour Employee', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A Modifié' });
+    const updatedTrain = { name: 'Train A' };
+    const res = await request(app).put(`/train/${train.id}`).send(updatedTrain).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Mettre à jour un train par ID - Gare non trouvée', async () => {
+    const res = await request(app).put('/train/60f5f8a2b8a245001c09d9c2').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Train non trouvé');
+  });
+
+
+
+  // ---------------------
+  // Supprimer un train par ID
+  // ---------------------
+
+  it('Supprimer un train par ID - Accès refusé pour User', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A Modifié' });
+    const res = await request(app).delete(`/train/${train.id}`).set('Authorization', `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Supprimer un train par ID - Accès refusé pour Employee', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A Modifié' });
+    const res = await request(app).delete(`/train/${train.id}`).set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('Accès refusé');
+  });
+
+  it('Supprimer un train par ID - Réussite pour Admin', async () => {
+    const train = await TrainModel.findOne({ name: 'Train A Modifié' });
+    const res = await request(app).delete(`/train/${train.id}`).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(204);
   });
 });

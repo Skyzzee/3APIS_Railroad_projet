@@ -1,0 +1,32 @@
+[{
+  "_id": {
+    "$oid": "6717b2b9c55d7fddddd4e186"
+  },
+  "name": "Gare Lyon Part-Dieu",
+  "open_hour": "06:00",
+  "close_hour": "23:00",
+  "image": "https://example.com/image-station.jpg",
+  "createdAt": {
+    "$date": "2024-10-22T14:12:09.261Z"
+  },
+  "updatedAt": {
+    "$date": "2024-10-22T14:16:15.749Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "671c1091e8f7157cd29e80bb"
+  },
+  "name": "Gare Dijon",
+  "open_hour": "06:00",
+  "close_hour": "23:00",
+  "image": "https://example.com/image-station.jpg",
+  "createdAt": {
+    "$date": "2024-10-25T21:41:37.258Z"
+  },
+  "updatedAt": {
+    "$date": "2024-10-25T21:41:37.258Z"
+  },
+  "__v": 0
+}]

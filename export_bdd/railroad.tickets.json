@@ -1,0 +1,38 @@
+[{
+  "_id": {
+    "$oid": "671ab5b1bf317196658ea88e"
+  },
+  "train_id": {
+    "$oid": "67179d3ad58e41f494cfd9db"
+  },
+  "user_id": {
+    "$oid": "6717ac0d1f53948d1d0d52b7"
+  },
+  "valid": false,
+  "createdAt": {
+    "$date": "2024-10-24T21:01:37.677Z"
+  },
+  "updatedAt": {
+    "$date": "2024-10-25T20:33:23.508Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "671ea604a8ef33980deb43f2"
+  },
+  "train_id": {
+    "$oid": "671ea351a8ef33980deb43d4"
+  },
+  "user_id": {
+    "$oid": "671ea279a8ef33980deb43bd"
+  },
+  "valid": true,
+  "createdAt": {
+    "$date": "2024-10-27T20:43:48.650Z"
+  },
+  "updatedAt": {
+    "$date": "2024-10-27T20:45:14.105Z"
+  },
+  "__v": 0
+}]

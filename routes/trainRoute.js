@@ -1,20 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const trainController = require('../controllers/trainController');
+const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware');
 
-// Récupérer tous les trains
+// Récupérer tous les trains -
 router.get('/', trainController.getAllTrains);
 
-// Enregistrer un train
-router.post('/create', trainController.creationTrain);
+// Créer un train - Admin / Connecté
+router.post('/create', verifyToken, authorizeRole(['admin']), trainController.creationTrain);
 
-// Récupérer un train par ID
+// Récupérer un train par son ID - 
 router.get('/:id', trainController.getTrainById);
 
-// Mettre à jour un train par ID
-router.put('/:id', trainController.updateTrainById);
+// Modifier un train - Admin / Connecté
+router.put('/:id', verifyToken, authorizeRole(['admin']), trainController.updateTrainById);
 
-// Supprimer un train par ID
-router.delete('/:id', trainController.deleteTrainById);
+// Supprimer un train - Admin / Connecté
+router.delete('/:id', verifyToken, authorizeRole(['admin']), trainController.deleteTrainById);
 
 module.exports = router;

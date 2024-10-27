@@ -1,0 +1,22 @@
+[{
+  "_id": {
+    "$oid": "671ea351a8ef33980deb43d4"
+  },
+  "name": "Train A",
+  "start_station": {
+    "$oid": "609c1ed4f30b5a0df1c9d77d"
+  },
+  "end_station": {
+    "$oid": "609c1ed4f30b5a0df1c9d77c"
+  },
+  "time_of_departure": {
+    "$date": "2023-10-01T14:30:00.000Z"
+  },
+  "createdAt": {
+    "$date": "2024-10-27T20:32:17.735Z"
+  },
+  "updatedAt": {
+    "$date": "2024-10-27T20:38:48.238Z"
+  },
+  "__v": 0
+}]
