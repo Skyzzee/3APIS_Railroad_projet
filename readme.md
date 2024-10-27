@@ -65,8 +65,10 @@ Reponse de la requête :
 Codes HTTP possibles :
 200 -> OK : Requête réussie, réponse retournée
 201 -> Created : Ressource créée avec succès
+204 ->
 400 -> Bad Request : Requête incorrecte ou mal formée
 401 -> Unauthorized : Authentification requise ou invalide
+403 -> 
 404 -> Not Found : Ressource non trouvée
 500 -> Internal Server Error : Erreur serveur inattendue
 

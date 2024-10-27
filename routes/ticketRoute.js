@@ -4,18 +4,18 @@ const ticketController = require('../controllers/ticketController');
 const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware');
 
 // Récupérer tous les tickets d’un utilisateur - Admin - Employee - Lui-même / Connecté
-router.get('/history', verifyToken, authorizeRole(['admin', 'employe', 'user']), ticketController.getTicketsByUserId);
+router.get('/history', verifyToken, authorizeRole(['admin', 'employee', 'user']), ticketController.getTicketsByUserId);
 
 // Récupérer tous les tickets d’un train - Admin - Employee / Connecté
-router.get('/:id_train/available', verifyToken, authorizeRole(['admin', 'employe']), ticketController.getTicketsByTrainId);
+router.get('/:id_train/available', verifyToken, authorizeRole(['admin', 'employee']), ticketController.getTicketsByTrainId);
 
 // Créer un ticket (Réserver un billet)  - Admin - Employee - User / Connecté
-router.post('/:id_train/booking', verifyToken, authorizeRole(['admin', 'employe', 'user']), ticketController.creationTicket);
+router.post('/:id_train/booking', verifyToken, authorizeRole(['admin', 'employee', 'user']), ticketController.creationTicket);
 
 // Récupérer un ticket par ID - Admin - Employee - Lui-même  / Connecté
-router.get('/:id', verifyToken, authorizeRole(['admin', 'employe', 'user']), ticketController.getTicketById); 
+router.get('/:id', verifyToken, authorizeRole(['admin', 'employee', 'user']), ticketController.getTicketById); 
 
 // Valider un ticket par ID - Admin - Employee / Connecté
-router.get('/:id/validate', verifyToken, authorizeRole(['admin', 'employe']), ticketController.validateTicketById);
+router.get('/:id/validate', verifyToken, authorizeRole(['admin', 'employee']), ticketController.validateTicketById);
 
 module.exports = router;

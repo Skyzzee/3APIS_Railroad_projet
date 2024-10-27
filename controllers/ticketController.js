@@ -42,10 +42,10 @@ exports.creationTicket = async (req, res) => {
 
     const ticket = new TicketModel({ user_id, train_id });
     await ticket.save();
-    res.status(201).json({ message: 'Le ticket a été réservé avec succès', ticket });
+    return res.status(201).json({ message: 'Le ticket a été réservé avec succès', ticket });
 
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la réservation du ticket' });
+    return res.status(500).json({ error: 'Erreur lors de la réservation du ticket' });
   }
 };
 

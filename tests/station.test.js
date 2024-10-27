@@ -1,13 +1,14 @@
 const request = require('supertest');
 const app = require('../app');
-const UserModel = require('../models/userModel');
-const StationModel = require('../models/stationModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const UserModel = require('../models/userModel');
+const StationModel = require('../models/stationModel');
+const { connectDB, disconnectDB } = require('../config/db');
 
 // Tests des routes pour les gares
 describe('Tests des routes des gares', () => {
-  let adminToken, userToken, employeeToken;
+  let adminToken, userToken, employeeToken, adminId, userId, employeeId;
 
   beforeAll(async () => {
     await connectDB();

@@ -50,14 +50,15 @@ describe('Tests des routes utilisateur', () => {
     expect(res.body.users).toBeInstanceOf(Array);
   });
 
-  it('Récupérer tous les utilisateurs - Accès refusé pour User', async () => {
-    const res = await request(app).get('/user/').set('Authorization', `Bearer ${userToken}`);
-    expect(res.statusCode).toBe(403);
-    expect(res.body.error).toBe('Accès refusé');
+  it('Récupérer tous les utilisateurs - Réussite pour Employee', async () => {
+    const res = await request(app).get('/user/').set('Authorization', `Bearer ${employeeToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Tous les utilisateurs ont été récupérés avec succès');
+    expect(res.body.users).toBeInstanceOf(Array);
   });
 
-  it('Récupérer tous les utilisateurs - Accès refusé pour Employee', async () => {
-    const res = await request(app).get('/user/').set('Authorization', `Bearer ${employeeToken}`);
+  it('Récupérer tous les utilisateurs - Accès refusé pour User', async () => {
+    const res = await request(app).get('/user/').set('Authorization', `Bearer ${userToken}`);
     expect(res.statusCode).toBe(403);
     expect(res.body.error).toBe('Accès refusé');
   });
@@ -195,7 +196,7 @@ describe('Tests des routes utilisateur', () => {
   // ===========================
   // Tests pour la modification du rôle d'un utilisateur
   // ===========================
-  
+
   it('Modification du rôle d\'un utilisateur - Réussite pour Admin', async () => {
     const res = await request(app)
       .put(`/user/${adminId}/role`)
