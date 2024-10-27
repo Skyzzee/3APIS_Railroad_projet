@@ -4,6 +4,10 @@ Bienvenue sur l'API Railroad, vous trouverez dans ce readme les différents comm
 
 ## Commande d'installation :
 
+ATTENTION, il vous faudra créer votre propre base de donnée et y importer les différentes collections présentent dans le projet. 
+Pensez donc a bien modifier cette ligne a votre convenance : "mongodb+srv://Skyzze:Skyzze21@cluster0.ftyqf.mongodb.net/railroad" 
+Vous pouvez retrouver cette ligne dans le fichier ".env", le reste est automatisé.
+
 npm install      // Permet d'installer tout le projet sur son poste
 
 ------------------------------------------------------------------------------------------------------------------------------
@@ -23,6 +27,10 @@ npm install --save-dev supertest       // Outil pour tester les requêtes HTTP s
 npm install --save-dev nodemon      // Redémarre automatiquement le serveur lorsqu'un fichier change
 
 npm install --save-dev mongodb-memory-server      // Créer une base de donnée en mémoire pour les tests (afin de ne pas polluer la vrai base de donnée)
+
+npm install swagger-ui-express     // Sert l'interface Swagger UI pour visualiser la documentation de votre API directement dans le navigateur
+npm install swagger-jsdoc     // Génère la documentation Swagger automatiquement à partir de commentaires dans le code
+npm install cors       // Active CORS (Cross-Origin Resource Sharing), ce qui est nécessaire pour le bon déroulement de swagger
 
 ------------------------------------------------------------------------------------------------------------------------------
 
@@ -49,6 +57,19 @@ NODE_ENV=development            - Lancer le projet (npm start)
 
 NODE_ENV=test            - Lancer les tests seulement (npm test)
 
+
+## Fonctionnement Swagger : 
+
+Rendez vous sur "https://editor.swagger.io", puis copier le contenu de "./docs/swagger.yaml" dans la partie texte de swagger. 
+Cela va générer automatiquement les différentes routes que vous pourrez tester mais également le schémas des composants de l'API. 
+Si vous souhaitez tester les différentes routes, ATTENTION, celle-ci sont protégées, il faudra alors vous connecter et avoir le role "admin" pour tester l'entièreté des routes. 
+
+Par defaut, seul quelques routes ne sont pas protégé comme la création et la connexion d'un utilisateur. 
+Malheureusement suite a la création d'un utilisateur, vous aurez par defaut le role "user", il faudra alors se rendre directement dans la base de donnée et vous donner le role "admin". 
+
+Suite à cela, pour passer ces sécurités, après votre connexion, vous aurez accès a votre token JWT, il faudra alors se rendre en haut de la page dans "Authorization" et y coller votre token. 
+
+Vous pouvez désormais tester les autres routes 
 
 ## Les routes du projet : 
 *******************************************************************************************
@@ -213,7 +234,7 @@ NODE_ENV=test            - Lancer les tests seulement (npm test)
         POST
 
     URL de la requête :
-        /train/
+        /train/create
 
     Corps de la requête (informations nécessaires) :
         { 
@@ -315,7 +336,7 @@ NODE_ENV=test            - Lancer les tests seulement (npm test)
         POST
 
     URL de la requête :
-        /station/
+        /station/create
 
     Corps de la requête (informations nécessaires) :
         { 

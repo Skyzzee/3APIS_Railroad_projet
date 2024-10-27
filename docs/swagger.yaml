@@ -1,0 +1,585 @@
+openapi: 3.0.0
+info:
+  title: Train Ticketing API
+  version: 1.0.0
+  description: API for managing users, trains, stations, and ticket reservations.
+
+servers:
+  - url: http://localhost:3005
+
+paths:
+  ### Authentication Routes
+  /user/register:
+    post:
+      summary: Register a new user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pseudo: { type: string, description: "Unique pseudo for the user", example: "user123" }
+                email: { type: string, format: email, example: "user@example.com" }
+                password: { type: string, format: password, example: "securepassword" }
+                role: { type: string, enum: ["user", "admin", "employee"], default: "user" }
+      responses:
+        '201': { description: "User created successfully" }
+        '400': { description: "Bad Request - Missing or duplicate data" }
+        '500': { description: "Server Error" }
+
+  /user/login:
+    post:
+      summary: User login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email, example: "user@example.com" }
+                password: { type: string, format: password, example: "securepassword" }
+      responses:
+        '200': { description: "Login successful" }
+        '400': { description: "Bad Request - Invalid credentials" }
+        '500': { description: "Server Error" }
+
+  ### User Routes
+  /user:
+    get:
+      summary: Get all users
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: "List of all users" }
+        '401': { description: "Unauthorized" }
+        '500': { description: "Server Error" }
+
+  /user/{id}:
+    get:
+      summary: Get user by ID
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, example: "609c1ed4f30b5a0df1c9d77c" }
+      responses:
+        '200': { description: "User retrieved successfully" }
+        '401': { description: "Unauthorized" }
+        '403': { description: "Forbidden - Not owner" }
+        '404': { description: "User not found" }
+        '500': { description: "Server Error" }
+
+    put:
+      summary: Update user by ID
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pseudo: { type: string, example: "user123" }
+                email: { type: string, example: "user@example.com" }
+      responses:
+        '200': { description: "User updated successfully" }
+        '400': { description: "Bad Request" }
+        '401': { description: "Unauthorized" }
+        '403': { description: "Forbidden" }
+        '404': { description: "Not found" }
+        '500': { description: "Server Error" }
+
+    delete:
+      summary: Delete user by ID
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: "User deleted successfully" }
+        '401': { description: "Unauthorized" }
+        '403': { description: "Forbidden" }
+        '404': { description: "Not found" }
+        '500': { description: "Server Error" }
+
+  /user/{id}/role:
+    put:
+      summary: Update role of a user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: ["user", "admin", "employee"], example: "employee" }
+      responses:
+        '200': { description: "Role updated successfully" }
+        '400': { description: "Invalid role provided" }
+        '403': { description: "Forbidden" }
+        '404': { description: "User not found" }
+        '500': { description: "Server Error" }
+
+  ### Train Routes
+  /train:
+    get:
+      summary: Get all trains
+      tags: [Trains]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+        - name: sort
+          in: query
+          schema: { type: string, enum: ["name", "start_station", "end_station", "time_of_departure"], default: "name" }
+        - name: order
+          in: query
+          schema: { type: string, enum: ["asc", "desc"], default: "asc" }
+      responses:
+        '200': { description: "List of all trains" }
+        '404': { description: "No trains found" }
+        '500': { description: "Server Error" }
+        
+  /train/create:
+    post:
+      summary: Create a new train
+      tags: [Trains]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Unique name of the train"
+                  example: "Express Line"
+                start_station:
+                  type: string
+                  description: "ObjectId of the start station"
+                  example: "609c1ed4f30b5a0df1c9d77c"
+                end_station:
+                  type: string
+                  description: "ObjectId of the end station"
+                  example: "609c1ed4f30b5a0df1c9d77d"
+                time_of_departure:
+                  type: string
+                  format: date-time
+                  description: "Departure time in ISO 8601 format"
+                  example: "2023-10-01T14:30:00Z"
+      responses:
+        '201': { description: "Train created successfully" }
+        '400': { description: "Bad Request - Missing required fields or duplicate train name" }
+        '500': { description: "Server Error" }
+
+  /train/{id}:
+    get:
+      summary: Get train by ID
+      tags: [Trains]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Train retrieved successfully" }
+        '404': { description: "Train not found" }
+        '500': { description: "Server Error" }
+
+    put:
+      summary: Update train by ID
+      tags: [Trains]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Unique name of the train"
+                  example: "Train A"
+                start_station:
+                  type: string
+                  description: "ObjectId of the start station"
+                  example: "609c1ed4f30b5a0df1c9d77d"
+                end_station:
+                  type: string
+                  description: "ObjectId of the end station"
+                  example: "609c1ed4f30b5a0df1c9d77c"
+                time_of_departure:
+                  type: string
+                  format: date-time
+                  description: "Departure time in ISO 8601 format"
+                  example: "2023-10-01T14:30:00Z"
+      responses:
+        '200': { description: "Train updated successfully" }
+        '400': { description: "Bad Request" }
+        '500': { description: "Server Error" }
+
+    delete:
+      summary: Delete train by ID
+      tags: [Trains]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: "Train deleted successfully" }
+        '500': { description: "Server Error" }
+
+  ### Station Routes
+  /station:
+    get:
+      summary: Get all stations
+      tags: [Stations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query
+          schema: { type: string, enum: ["name"], default: "name" }
+      responses:
+        '200': { description: "List of all stations" }
+        '500': { description: "Server Error" }
+
+  /station/create:
+    post:
+      summary: Create a new station
+      tags: [Stations]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Unique name of the station"
+                  example: "Gare de Lyon"
+                open_hour:
+                  type: string
+                  description: "Heure d'ouverture"
+                  example: "06h00"
+                close_hour:
+                  type: string
+                  description: "Heure de fermeture"
+                  example: "22h00"
+                image:
+                  type: string
+                  description: "Image de la gare"
+                  example: "https://example.com/image-station.jpg"
+      responses:
+        '201': { description: "Station created successfully" }
+        '400': { description: "Bad Request" }
+        '500': { description: "Server Error" }
+
+  /station/{id}:
+    get:
+      summary: Get station by ID
+      tags: [Stations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Station retrieved successfully" }
+        '404': { description: "Station not found" }
+        '500': { description: "Server Error" }
+
+    put:
+      summary: Update station by ID
+      tags: [Stations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Unique name of the station"
+                  example: "Gare de Lyon"
+                open_hour:
+                  type: string
+                  description: "Heure d'ouverture"
+                  example: "06h00"
+                close_hour:
+                  type: string
+                  description: "Heure de fermeture"
+                  example: "22h00"
+                image:
+                  type: string
+                  description: "Image de la gare"
+                  example: "https://example.com/image-station.jpg"
+      responses:
+        '200': { description: "Station updated successfully" }
+        '400': { description: "Bad Request" }
+        '404': { description: "Station not found" }
+        '500': { description: "Server Error" }
+
+    delete:
+      summary: Delete station by ID
+      tags: [Stations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: "Station deleted successfully" }
+        '500': { description: "Server Error" }
+
+  ### Ticket Routes
+  /ticket/{id_train}/booking:
+    post:
+      summary: Book a ticket for a train
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_train
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: "Ticket booked successfully" }
+        '500': { description: "Server Error" }
+
+  /ticket/history:
+    get:
+      summary: Get all tickets of the user (history)
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: "Ticket history retrieved successfully" }
+        '404': { description: "No tickets found" }
+        '500': { description: "Server Error" }
+        
+  /ticket/{id_train}/available:
+    get:
+      summary: Get all available tickets for a train by train ID
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id_train
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Available tickets retrieved successfully" }
+        '404': { description: "No tickets available for this train" }
+        '500': { description: "Server Error" }
+
+  /ticket/{id}:
+    get:
+      summary: Get ticket by ID
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Ticket retrieved successfully" }
+        '403': { description: "Forbidden" }
+        '404': { description: "Ticket not found" }
+        '500': { description: "Server Error" }
+
+  /ticket/{id}/validate:
+    get:
+      summary: Validate a ticket by ID
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Ticket validated successfully" }
+        '404': { description: "Ticket not found" }
+        '500': { description: "Server Error" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:  # Déplacez les schémas ici
+    User:
+      type: object
+      required:
+        - pseudo
+        - email
+        - password
+      properties:
+        pseudo:
+          type: string
+          example: "user123"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          example: "securepassword"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+    Station:
+      type: object
+      required:
+        - name
+        - open_hour
+        - close_hour
+      properties:
+        name:
+          type: string
+          example: "Central Station"
+        open_hour:
+          type: string
+          example: "06:00"
+        close_hour:
+          type: string
+          example: "22:00"
+        image:
+          type: string
+          example: "http://example.com/image.jpg"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+    Train:
+      type: object
+      required:
+        - name
+        - start_station
+        - end_station
+        - time_of_departure
+      properties:
+        name:
+          type: string
+          example: "Express Line"
+        start_station:
+          type: string
+          example: "609c1ed4f30b5a0df1c9d77c"
+        end_station:
+          type: string
+          example: "609c1ed4f30b5a0df1c9d77d"
+        time_of_departure:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+    Ticket:
+      type: object
+      required:
+        - user_id
+        - train_id
+        - valid
+      properties:
+        user_id:
+          type: string
+          example: "609c1ed4f30b5a0df1c9d77c"
+        train_id:
+          type: string
+          example: "609c1ed4f30b5a0df1c9d77e"
+        valid:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-10-01T14:30:00Z"
